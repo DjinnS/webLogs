@@ -1,14 +1,28 @@
 <?php
+/*
+* webLogs - https://github.com/DjinnS/webLogs
+*/
 
 // PARAMETERS
-$logs= array(
-    1 => "../../../logs/lhttpd-access.log",
-    2 => "../../../logs/lhttpd-error.log",
+$version="v0.1";
+
+$logs=array(
+    '1' => array(
+		"name" => "Access log",
+		"path" => "../../../logs/lhttpd-access.log"
+		),
+    '2' => array(
+		"name" => "Error log",
+		"path" => "../../../logs/lhttpd-access.log"
+		),
+    '3' => array(
+		"name" => "not a log",
+		"path" => "test.log"
+		),
 );
 
 // FUNCTIONS
-
-function tailfile($file, $lines) {
+function tailFile($file, $lines) {
     $handle = fopen($file, "r");
     $linecounter = $lines;
     $pos = -2;
@@ -34,72 +48,103 @@ function tailfile($file, $lines) {
     fclose ($handle);
     return array_reverse($text);
 }
+
+if(isSet($_POST['logs'])) {
+
+	if(isSet($logs[$_POST['logs']])) {
+
+		$logPath=$logs[$_POST['logs']]["path"];
+	
+		$lines=(isSet($_POST['lines']) && $_POST['lines'] <= 1024) ? $_POST['lines'] : 1024;
+	
+		if(file_exists($logPath)) {
+
+			$fsize = round(filesize($logPath)/1024/1024,2);
+		
+			$lines = tailFile($logPath,$lines);
+		}
+	}
+}
+
 ?>
 <html>
-<head>
-	<title>WebLogs</title>
+	<head>
+		<title>WebLogs - <?=$version?></title>
 
-	<script>
-	<!--
-		function toBottom(){
+		<script>
+		<!--
+			function toBottom(){
 	
-			nDiv = document.getElementById('log');
-			setTimeout("nDiv.scrollTop = nDiv.scrollHeight",1);
-		}
+				nDiv = document.getElementById('log');
+				setTimeout("nDiv.scrollTop = nDiv.scrollHeight",1);
+			}
 
-		onload=toBottom;
-	-->	
-	</script>
-</head>
-<body>
+			onload=toBottom;
+		-->	
+		</script>
 
-<div style="text-align: center">
-	<form method="POST">
+		<style>
+		<!--
+			a {
+				text-decoration: none;
+			}
+		-->
+		</style>
+	</head>
 
-		Logfile: 
-		<select name="logs">
-	        	<option value="1" <?php if(isSet($_POST['logs']) && $_POST['logs'] == 1) echo "selected"; ?>>Access log</option>
-		        <option value="2" <?php if(isSet($_POST['logs']) && $_POST['logs'] == 2) echo "selected"; ?>>Error log</option>
-		        <option value="3" <?php if(isSet($_POST['logs']) && $_POST['logs'] == 3) echo "selected"; ?>>PHP log</option>
-		</select>
+	<body>
 
-		- Lines: <input type="text" name="lines" size="3" value="50" /> (max 1024)
-
-		<input type="submit" value="View"/>
-	</form>
-</div>
-
-<?php
-	if(isSet($_POST['logs'])) {
-
-		if(isSet($logs[$_POST['logs']])) {
-
-			$logfile=$logs[$_POST['logs']];
-
-			$lines=(isSet($_POST['lines']) && $_POST['lines'] <= 1024) ? $_POST['lines'] : 1024;
-
-			if(file_exists($logfile)) {
-
-				$fsize = round(filesize($logfile)/1024/1024,2);
-
-				echo '<div style="text-align: center"><strong>Last '.$lines.' lines of the file '.$logfile.' (size: '.$fsize.' Mb):</strong></div><br />';
+		<div id="form" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dotted #000000;">
+			<form method="POST">
 	
-				$lines = tailfile($logfile, $lines);
+				<div style="float: left; padding-right: 20px;"><strong>:: <a href="https://github.com/DjinnS/WebLogs">webLogs</a> ::</strong></div>
 
-				echo '<div style="height: 80%; overflow: auto; background-color: #F0F0F0; border: 1px solid #000000" id="log">';
+				<div style="float: left; padding-right: 20px;">
+
+					Logfile: 
+					<select name="logs">
+						<?php
+							foreach($logs as $key => $value) {
+								$selected = (isSet($_POST['logs']) && $key == $_POST['logs']) ? "selected" : "";
+								echo '<option value="'.$key.'" '.$selected.'>'.$value['name'].'</option>';
+							}
+						?>
+					</select>
+				</div>
+
+				<div style="float: left; padding-right: 20px;">
+						Lines: <input type="text" name="lines" size="3" value="50" /> (max 1024)
+				</div>
+
+				<div style="float: left; padding-right: 20px;">
+					Auto refresh <input type="checkbox" name"autorefresh" />, frequency: <input type="text" name="lines" size="3" value="50" /> (seconds)
+				</div>
+
+				<div style="float: left; padding-right: 20px;">
+					<input type="submit" value="View log"/>
+				</form>
+
+				<?php
+					if($fsize) {
+						echo '<strong>Last '.$lines.' lines of the file '.$logPath.' (size: '.$fsize.' Mb):</strong>';	
+					}
+				?>
+			</div>
+		</div>
+
+		<div style="clear: both;"></div>
+
+		<div style="height: 80%; overflow: auto; background-color: #F0F0F0; border: 1px solid #000000" id="log">
+		<?php
+			if($lines) {
 				foreach ($lines as $line) {
 				    echo $line."<br />";
 				}
-				echo "</div>";
 			} else {
-				echo "File doesn't exist !";
+				if(isSet($_POST['logs'])) echo "File doesn't exist !";
+				else echo "Select a file !";
 			}
-		}
-	}
-?>
-
-<hr />
-
-<div style="text-align: center"><a href="https://github.com/DjinnS/WebLogs">webLogs - v 0.1</a></div>
-</body>
+		?>
+		</div>
+	</body>
 </html>
