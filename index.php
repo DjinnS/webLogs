@@ -1,11 +1,36 @@
 <?php
 /*
-* webLogs - https://github.com/DjinnS/webLogs
+# webLogs
+#
+# Simple view your log files from the Web
+#
+# http://github.com/djinns/webLogs
+#
+# Copyright (C) 2011 djinns@chninkel.net
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 */
 
-// PARAMETERS
-$version="v0.1";
+// CONFIGURATION SECTION
 
+// Authentification
+$auth=1;
+$user="admin";
+$pass="mypasswd";
+
+// Log files
 $logs=array(
     '1' => array(
 		"name" => "Access log",
@@ -21,7 +46,12 @@ $logs=array(
 		),
 );
 
-// FUNCTIONS
+// /!\ DO NOT EDIT BEYOND THIS LINE /!\
+
+// Global
+$version="v0.2";
+
+// Functions
 function tailFile($file, $lines) {
     $handle = fopen($file, "r");
     $linecounter = $lines;
@@ -47,6 +77,31 @@ function tailFile($file, $lines) {
     }
     fclose ($handle);
     return array_reverse($text);
+}
+
+// Begin
+
+// Authentification
+if($auth) {
+
+	// CGI
+	if(isset($_SERVER['HTTP_AUTHORIZATION'])) {
+		$auth_params = explode(":" , base64_decode(substr($_SERVER['HTTP_AUTHORIZATION'], 6)));
+		$_SERVER['PHP_AUTH_USER'] = $auth_params[0];
+		unset($auth_params[0]);
+		$_SERVER['PHP_AUTH_PW'] = implode('',$auth_params);
+	} 
+
+	// check login et password
+	if (($_SERVER['PHP_AUTH_USER'] != $user) || ($_SERVER['PHP_AUTH_PW'] != $pass)) {
+
+	    header('WWW-Authenticate: Basic realm="Restricted Area !"');
+	    header('Status: 401 Unauthorized');
+	
+		header('HTTP-Status: 401 Unauthorized'); // CGI
+
+		die("<center><strong>Access Forbidden</strong></center>");
+	}
 }
 
 if(isSet($_POST['logs'])) {
@@ -116,9 +171,9 @@ if(isSet($_POST['logs'])) {
 						Lines: <input type="text" name="lines" size="3" value="50" /> (max 1024)
 				</div>
 
-				<div style="float: left; padding-right: 20px;">
+				<!--<div style="float: left; padding-right: 20px;">
 					Auto refresh <input type="checkbox" name"autorefresh" />, frequency: <input type="text" name="lines" size="3" value="50" /> (seconds)
-				</div>
+				</div>-->
 
 				<div style="float: left; padding-right: 20px;">
 					<input type="submit" value="View log"/>
